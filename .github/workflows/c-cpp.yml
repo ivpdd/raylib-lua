@@ -1,6 +1,8 @@
-name: Build raylib-lua for macOS
+name: Build raylua_e for macOS x86_64
 
-on: [push, workflow_dispatch] # Runs on push and manually
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -8,16 +10,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: 'recursive' # This is crucial to get the raylib and luajit submodules [citation:2]
+          submodules: 'recursive'
 
-      - name: Build raylib-lua
+      - name: Build raylib-lua for x86_64
         run: |
-          make
+          # Force x86_64 architecture
+          export ARCHFLAGS="-arch x86_64"
+          export CFLAGS="-arch x86_64 -mmacosx-version-min=10.13"
+          export LDFLAGS="-arch x86_64 -mmacosx-version-min=10.13"
+          
+          # Build LuaJIT for x86_64
+          cd luajit
+          make clean
+          make amalg BUILDMODE=static MACOSX_DEPLOYMENT_TARGET=10.13
+          cd ..
+          
+          # Build raylib
+          cd raylib/src
+          make clean
+          make PLATFORM=PLATFORM_DESKTOP GRAPHICS=GRAPHICS_API_OPENGL_33
+          cd ../..
+          
+          # Build raylib-lua
+          make CC=clang CFLAGS="-O2 -Iluajit/src -Iraylib/src -Iraygui/src -Iphysac/src -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -arch x86_64 -mmacosx-version-min=10.13" LDFLAGS="-O2 -lm luajit/src/libluajit.a raylib/src/libraylib.a -arch x86_64 -mmacosx-version-min=10.13 -framework Cocoa -framework IOKit -framework CoreVideo -framework OpenGL"
 
-      - name: Upload macOS binaries
+      - name: Upload raylua_e (x86_64)
         uses: actions/upload-artifact@v4
         with:
-          name: raylib-lua-macos
-          path: |
-            raylua_s
-            raylua_e
+          name: raylua_e_macos_x86_64
+          path: raylua_e
