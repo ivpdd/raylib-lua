@@ -1,0 +1,23 @@
+name: Build raylib-lua for macOS
+
+on: [push, workflow_dispatch] # Runs on push and manually
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive' # This is crucial to get the raylib and luajit submodules [citation:2]
+
+      - name: Build raylib-lua
+        run: |
+          make
+
+      - name: Upload macOS binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: raylib-lua-macos
+          path: |
+            raylua_s
+            raylua_e
