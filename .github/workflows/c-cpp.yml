@@ -2,45 +2,30 @@ name: Build raylua_e for macOS x86_64
 
 on:
   push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      - name: Build x86_64
+      - name: Build raylib-lua for x86_64
         run: |
           export MACOSX_DEPLOYMENT_TARGET=10.13
-          
-          # Build LuaJIT for x86_64
-          cd luajit
-          make clean MACOSX_DEPLOYMENT_TARGET=10.13
-          make amalg BUILDMODE=static MACOSX_DEPLOYMENT_TARGET=10.13 CC='clang -arch x86_64'
-          cd ..
-          
-          # Build raylib for x86_64
-          cd raylib/src
-          make clean
-          make PLATFORM=PLATFORM_DESKTOP GRAPHICS=GRAPHICS_API_OPENGL_33 \
-               CC='clang -arch x86_64' \
-               CFLAGS="-arch x86_64 -mmacosx-version-min=10.13" \
-               LDFLAGS="-arch x86_64 -mmacosx-version-min=10.13"
-          cd ../..
-          
-          # Build raylib-lua
-          make clean
-          make CC='clang -arch x86_64' \
-               CFLAGS="-O2 -Iluajit/src -Iraylib/src -Iraygui/src -Iphysac/src -DGRAPHICS_API_OPENGL_33 -DPLATFORM_DESKTOP -arch x86_64 -mmacosx-version-min=10.13" \
-               LDFLAGS="-O2 -lm luajit/src/libluajit.a raylib/src/libraylib.a -arch x86_64 -mmacosx-version-min=10.13 -framework Cocoa -framework IOKit -framework CoreVideo -framework OpenGL"
+          make
 
       - name: Verify architecture
         run: |
           file raylua_e
-          # Expected: Mach-O 64-bit executable x86_64
+          lipo -info raylua_e
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
